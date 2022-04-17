@@ -1,19 +1,26 @@
 version: '3'
 services:
   selenoid:
-    hostname: 'my.selenoid.com'
+    hostname: 'selenoid'
     network_mode: bridge
     image: aerokube/selenoid:latest-release
     volumes:
-      - "/path/to/config:/etc/selenoid"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/path/to/config/video:/opt/selenoid/video"
-      - "/path/to/config/logs:/opt/selenoid/logs"
+      - "$PWD:/etc/selenoid/"
+      - "$PWD:/var/run/docker.sock"
     environment:
       - OVERRIDE_VIDEO_OUTPUT_DIR=/path/to/config/video
     command: [ "-conf", "/etc/selenoid/browsers.json", "-video-output-dir", "/opt/selenoid/video", "-log-output-dir", "/opt/selenoid/logs" ]
     ports:
       - "4444:4444"
+
+  selenoid-ui:
+    image: "aerokube/selenoid-ui"
+    network_mode: bridge
+    links:
+      - selenoid
+    ports:
+      - "8080:8080"
+    command: [ "--selenoid-uri", "http://selenoid:4444" ]
 
   jenkins:
     hostname: 'my.jenkins.com'
@@ -23,16 +30,16 @@ services:
       - "${PWD}/work/jenkins:/var/jenkins_home"
     ports:
       - "8000:8080"
+    restart: always
 
   gitlab:
     image: 'gitlab/gitlab-ce:latest'
     restart: always
     hostname: 'gitlab.example.com'
     ports:
-      - '8929:80'
-      - '2224:22'
+      - "6942:8080"
     volumes:
-      - '$GITLAB_HOME/config:/etc/gitlab'
-      - '$GITLAB_HOME/logs:/var/log/gitlab'
-      - '$GITLAB_HOME/data:/var/opt/gitlab'
+      - '${PWD}/gitlab/config:/etc/gitlab'
+      - '${PWD}/gitlab/logs:/var/log/gitlab'
+      - '${PWD}/gitlab/data:/var/opt/gitlab'
     shm_size: '256m'
